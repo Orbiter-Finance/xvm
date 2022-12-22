@@ -4,7 +4,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import 'hardhat-contract-sizer';
 import '@openzeppelin/hardhat-upgrades';
-const { INFURA_API_KEY, ETHERSCAN_API_KEY,ALCHEMY_KEY, NETWORK,ACCOUNTS} = process.env;
+const { INFURA_API_KEY ,ALCHEMY_KEY, NETWORK,ACCOUNTS} = process.env;
 const accounts = ACCOUNTS?.split(',');
 const config: HardhatUserConfig = {
   defaultNetwork: NETWORK || "hardhat",
@@ -34,7 +34,7 @@ const config: HardhatUserConfig = {
       accounts
     },
     goerli: {
-      url: `https://eth-goerli.g.alchemy.com/v2/hf1Y5gD_wXUHlTb5c_RnXlKBqGy2NatD`,
+      url: `https://eth-goerli.g.alchemy.com/v2/${ALCHEMY_KEY}`,
       // chainId: 5,
       // gasPrice:1 * 10**9,
       timeout: 1000 * 60 * 60 * 5,
