@@ -1,12 +1,22 @@
 import 'dotenv/config';
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomiclabs/hardhat-web3";
+import 'hardhat-contract-sizer';
 import '@openzeppelin/hardhat-upgrades';
-const { INFURA_API_KEY, ETHERSCAN_API_KEY, NETWORK,ACCOUNTS} = process.env;
+const { INFURA_API_KEY, ETHERSCAN_API_KEY,ALCHEMY_KEY, NETWORK,ACCOUNTS} = process.env;
 const accounts = ACCOUNTS?.split(',');
 const config: HardhatUserConfig = {
-  solidity: "0.8.17",
   defaultNetwork: NETWORK || "hardhat",
+  solidity: {
+    version: '0.8.17',
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   networks: {
     hardhat: {
       allowUnlimitedContractSize: true,
@@ -23,33 +33,25 @@ const config: HardhatUserConfig = {
       url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
       accounts
     },
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/${INFURA_API_KEY}`,
-      accounts
-    },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${INFURA_API_KEY}`,
-      accounts
-    },
     goerli: {
-      url: `https://goerli.infura.io/v3/b05e00d568ac421ebb76cf518e162c6b`,
+      url: `https://eth-goerli.g.alchemy.com/v2/hf1Y5gD_wXUHlTb5c_RnXlKBqGy2NatD`,
       // chainId: 5,
-      // gasPrice:20 * 10**9,
+      // gasPrice:1 * 10**9,
       timeout: 1000 * 60 * 60 * 5,
-      gas: 2100000,
-      gasPrice: 1000000000,
+      // gas: 300000,
+      // gasPrice: 1000000000,
       accounts,
-    },
-    kovan: {
-      url: `https://kovan.infura.io/v3/${INFURA_API_KEY}`,
-      accounts
     },
     arbitrum: {
       url: `https://arbitrum-mainnet.infura.io/v3/${INFURA_API_KEY}`,
       accounts
     },
-    optimismKovan: {
-      url: `https://optimism-kovan.infura.io/v3/${INFURA_API_KEY}`,
+    arbitrumGoerli: {
+      url: `https://goerli-rollup.arbitrum.io/rpc`,
+      accounts
+    },
+    optimismGoerli: {
+      url: `https://goerli.optimism.io`,
       accounts
     },
     optimism: {
@@ -57,7 +59,23 @@ const config: HardhatUserConfig = {
       accounts
     },
     mumbai: {
-      url: `https://polygon-mumbai.infura.io/v3/${INFURA_API_KEY}`,
+      url: `https://polygon-testnet.public.blastapi.io`,
+      accounts
+    },
+    metisGoerli: {
+      url: `https://stardust.metis.io/?owner=588`,
+      accounts
+    },
+    zksyncGoerli: {
+      url: `https://zksync2-testnet.zksync.dev`,
+      accounts
+    },
+    scrollGoerli: {
+      url: `https://prealpha.scroll.io/l2`,
+      accounts
+    },
+    bscTestnet: {
+      url: `https://data-seed-prebsc-2-s3.binance.org:8545`,
       accounts
     },
     polygon: {

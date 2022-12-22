@@ -1,7 +1,8 @@
-//SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-
+import "./Multicall.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IERC20 {
     function transferFrom(
@@ -11,36 +12,70 @@ interface IERC20 {
     ) external returns (bool);
 }
 
-contract OrbiterBridge is ReentrancyGuard {
-    constructor() {}
+contract OrbiterBridge is Ownable, ReentrancyGuard, Multicall {
+    mapping(address => bool) public getMaker;
 
-    event SwapEvent(address maker, address token, uint256 value, bytes[] data);
-    event SwapFailEvent(
+    event Transfer(
+        address token,
+        address recipient,
+        uint256 value,
+        bytes[] data
+    );
+    event Swap(address maker, address token, uint256 value, bytes[] data);
+    event SwapOK(
         bytes32 tradeId,
         address token,
         address to,
         uint256 value
     );
+    event SwapFail(bytes32 tradeId, address token, address to, uint256 value);
 
-    event SwapOKEvent(
-        bytes32 tradeId,
-        address token,
-        address to,
-        uint256 value
-    );
+    event ChangeMaker(address indexed maker, bool enable);
 
-    function transfer(address to, uint256 value) internal {
-        (bool success, ) = to.call{value: value}("");
-        require(success, "ERROR");
+    constructor(address maker) {
+        changeMaker(maker, true);
     }
 
-    function transferERC20(
+    modifier onlyMaker() {
+        _checkMaker();
+        _;
+    }
+
+    function _checkMaker() internal view virtual {
+        require(getMaker[_msgSender()], "Ownable: caller is not the maker");
+    }
+
+    function changeMaker(address maker, bool enable) public {
+        getMaker[maker] = enable;
+        emit ChangeMaker(maker, enable);
+    }
+
+    function tranfer(
         address token,
-        address to,
+        address payable recipient,
         uint256 value
-    ) internal {
-        bool success = IERC20(token).transferFrom(msg.sender, to, value);
-        require(success, "ERROR");
+    ) private {
+        require(value > 0, "Value Err");
+        if (token == address(0)) {
+            recipient.transfer(value);
+        } else {
+            bool success = IERC20(token).transferFrom(
+                msg.sender,
+                recipient,
+                value
+            );
+            require(success, "Tranfer Err");
+        }
+    }
+
+    function transfer(
+        address token,
+        address payable recipient,
+        uint256 value,
+        bytes[] memory data
+    ) external payable nonReentrant {
+        emit Transfer(token, recipient, value, data);
+        tranfer(token, recipient, value);
     }
 
     function swap(
@@ -49,43 +84,28 @@ contract OrbiterBridge is ReentrancyGuard {
         uint256 value,
         bytes[] calldata data
     ) external payable nonReentrant {
-        //  expect=> chainId,token,address,value
-        if (token == address(0)) {
-            transfer(maker, msg.value);
-            emit SwapEvent(maker, address(0), msg.value, data);
-        } else {
-            transferERC20(token, maker, value);
-            emit SwapEvent(maker, token, value, data);
-        }
+        value = token == address(0) ? msg.value : value;
+        emit Swap(maker, token, value, data);
+        tranfer(token, maker, value);
     }
 
     function swapFail(
         bytes32 tradeId,
         address token,
-        address to,
+        address payable to,
         uint256 value
-    ) external payable nonReentrant {
-        if (token == address(0)) {
-            transfer(to, msg.value);
-            emit SwapFailEvent(tradeId, address(0), to, msg.value);
-        } else {
-            transferERC20(token, to, value);
-            emit SwapFailEvent(tradeId, token, to, value);
-        }
+    ) external payable onlyMaker nonReentrant {
+        emit SwapFail(tradeId, token, to, value);
+        tranfer(token, to, value);
     }
 
     function swapOK(
         bytes32 tradeId,
         address token,
-        address to,
+        address payable to,
         uint256 value
-    ) external payable nonReentrant {
-        if (token == address(0)) {
-            transfer(to, msg.value);
-            emit SwapOKEvent(tradeId, address(0), to, msg.value);
-        } else {
-            transferERC20(token, to, value);
-            emit SwapOKEvent(tradeId, token, to, value);
-        }
+    ) external payable onlyMaker nonReentrant {
+        emit SwapFail(tradeId, token, to, value);
+        tranfer(token, to, value);
     }
 }
