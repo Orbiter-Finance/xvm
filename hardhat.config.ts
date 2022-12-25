@@ -78,6 +78,10 @@ const config: HardhatUserConfig = {
       url: `https://data-seed-prebsc-2-s3.binance.org:8545`,
       accounts
     },
+    polygonZKEVM: {
+      url:"https://rpc.public.zkevm-test.net",
+      accounts
+    },
     polygon: {
       url: `https://polygon-mainnet.infura.io/v3/${INFURA_API_KEY}`,
       accounts

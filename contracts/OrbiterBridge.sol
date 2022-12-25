@@ -105,7 +105,7 @@ contract OrbiterBridge is Ownable, ReentrancyGuard, Multicall {
         address payable to,
         uint256 value
     ) external payable onlyMaker nonReentrant {
-        emit SwapFail(tradeId, token, to, value);
+        emit SwapOK(tradeId, token, to, value);
         tranfer(token, to, value);
     }
 }
