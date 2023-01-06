@@ -13,9 +13,9 @@ async function main() {
   const tokens = ["0x6b56404816A1CB8ab8E8863222d8C1666De942d5", "0x1c8f9D9C1D74c38c8Aeb5033126EA1133728b32f", "0xFEf68eb974c562B0dCBF307d9690e0BD10e35cEa"];
   for (const tokenAddr of tokens) {
     const tokenContract = await ethers.getContractAt('TestToken', tokenAddr);
-    const maxAmount = "10000000000000000000000000000000000000000000000000";
-    const tx = await tokenContract.connect(maker).approve(xvmAddr, maxAmount, {
-      gasLimit: 70000
+    const totalSupply = await tokenContract.totalSupply();
+    const tx = await tokenContract.connect(maker).approve(xvmAddr, totalSupply, {
+      gasLimit: 100000
     });
     console.log(tx.hash, '==approve');
     await tx.wait();

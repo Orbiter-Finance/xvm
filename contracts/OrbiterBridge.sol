@@ -5,6 +5,18 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IERC20 {
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+
+    function balanceOf(address account) external view returns (uint256);
+
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
+
     function transferFrom(
         address from,
         address to,
@@ -14,98 +26,92 @@ interface IERC20 {
 
 contract OrbiterBridge is Ownable, ReentrancyGuard, Multicall {
     mapping(address => bool) public getMaker;
-
-    event Transfer(
-        address token,
-        address recipient,
-        uint256 value,
-        bytes[] data
+    event Swap(address indexed maker, address indexed token);
+    event SwapAnswer(
+        uint256 indexed op,
+        address indexed operator,
+        address indexed recipient,
+        bytes32 tradeId
     );
-    event Swap(address maker, address token, uint256 value, bytes[] data);
-    event SwapOK(
-        bytes32 tradeId,
-        address token,
-        address to,
-        uint256 value
-    );
-    event SwapFail(bytes32 tradeId, address token, address to, uint256 value);
 
-    event ChangeMaker(address indexed maker, bool enable);
+    event ChangeMaker(address indexed maker, bool indexed enable);
 
     constructor(address maker) {
         changeMaker(maker, true);
     }
 
-    modifier onlyMaker() {
-        _checkMaker();
-        _;
-    }
+    receive() external payable {}
 
-    function _checkMaker() internal view virtual {
-        require(getMaker[_msgSender()], "Ownable: caller is not the maker");
-    }
-
-    function changeMaker(address maker, bool enable) public {
+    function changeMaker(address maker, bool enable) public onlyOwner {
         getMaker[maker] = enable;
         emit ChangeMaker(maker, enable);
     }
 
-    function tranfer(
+    function withdraw(address token) external onlyOwner {
+        if (token != address(0)) {
+            bool success = IERC20(token).transfer(
+                msg.sender,
+                IERC20(token).balanceOf(address(this))
+            );
+            require(success, "Withdraw Fail");
+        } else {
+            payable(msg.sender).transfer(address(this).balance);
+        }
+    }
+
+    function forward(
         address token,
         address payable recipient,
         uint256 value
     ) private {
-        require(value > 0, "Value Err");
+        // require(value > 0, "Value Wrong");
         if (token == address(0)) {
+            require(address(this).balance >= value, "Insufficient Balance");
             recipient.transfer(value);
         } else {
+            require(
+                IERC20(token).allowance(msg.sender, address(this)) >= value,
+                "Insufficient Balance"
+            );
             bool success = IERC20(token).transferFrom(
                 msg.sender,
                 recipient,
                 value
             );
-            require(success, "Tranfer Err");
+            require(success, "Tranfer Wrong");
         }
     }
 
-    function transfer(
-        address token,
-        address payable recipient,
-        uint256 value,
-        bytes[] memory data
-    ) external payable nonReentrant {
-        emit Transfer(token, recipient, value, data);
-        tranfer(token, recipient, value);
-    }
-
+    /// @notice This method allows you to initiate a Swap transaction
+    /// @dev You can call our contract Swap anywhere
+    /// @param maker maker wallet address
+    /// @param token source chain token, chain mainToken address is 0x000....000
+    /// @param value source chain send token value
+    /// @param data Additional parameters
     function swap(
         address payable maker,
         address token,
         uint256 value,
-        bytes[] calldata data
-    ) external payable nonReentrant {
+        bytes calldata data
+    )
+        external
+        payable
+        nonReentrant
+    {
         value = token == address(0) ? msg.value : value;
-        emit Swap(maker, token, value, data);
-        tranfer(token, maker, value);
+        emit Swap(maker, token);
+        forward(token, maker, value);
     }
 
-    function swapFail(
+    function swapAnswer(
         bytes32 tradeId,
-        address token,
         address payable to,
-        uint256 value
-    ) external payable onlyMaker nonReentrant {
-        emit SwapFail(tradeId, token, to, value);
-        tranfer(token, to, value);
-    }
-
-    function swapOK(
-        bytes32 tradeId,
         address token,
-        address payable to,
+        uint256 op,
         uint256 value
-    ) external payable onlyMaker nonReentrant {
-        emit SwapOK(tradeId, token, to, value);
-        tranfer(token, to, value);
+    ) external payable {
+        require(getMaker[msg.sender], "Ownable: caller is not the maker");
+        emit SwapAnswer(op, msg.sender, to, tradeId);
+        forward(token, to, value);
     }
 }

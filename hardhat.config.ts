@@ -4,7 +4,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import 'hardhat-contract-sizer';
 import '@openzeppelin/hardhat-upgrades';
-const { INFURA_API_KEY ,ALCHEMY_KEY, NETWORK,ACCOUNTS} = process.env;
+const { INFURA_API_KEY, ALCHEMY_KEY, NETWORK, ACCOUNTS } = process.env;
 const accounts = ACCOUNTS?.split(',');
 const config: HardhatUserConfig = {
   defaultNetwork: NETWORK || "hardhat",
@@ -66,10 +66,6 @@ const config: HardhatUserConfig = {
       url: `https://stardust.metis.io/?owner=588`,
       accounts
     },
-    zksyncGoerli: {
-      url: `https://zksync2-testnet.zksync.dev`,
-      accounts
-    },
     scrollGoerli: {
       url: `https://prealpha.scroll.io/l2`,
       accounts
@@ -79,7 +75,7 @@ const config: HardhatUserConfig = {
       accounts
     },
     polygonZKEVM: {
-      url:"https://rpc.public.zkevm-test.net",
+      url: "https://rpc.public.zkevm-test.net",
       accounts
     },
     polygon: {
