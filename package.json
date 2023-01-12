@@ -3,7 +3,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "coverage": "env COVERAGE=true hardhat coverage",
-    "test": "REPORT_GAS=true hardhat test ./test/TestToken.ts ./test/OrbiterBridge.ts  --network hardhat",
+    "test": "REPORT_GAS=true hardhat test ./test/TestToken.ts ./test/OrbiterBridgeRouter.ts  --network hardhat",
     "test:goerli": "REPORT_GAS=true hardhat test ./test/OBSource.ts  --network ganache",
     "lint": "npm run lint:ts && npm run lint:sol",
     "lint:fix": "npm run lint:ts:fix && npm run lint:sol:fix",
@@ -72,6 +72,7 @@
     "lodash": "^4.17.21",
     "merkletreejs": "^0.2.32",
     "rimraf": "^3.0.2",
+    "rlp": "^3.0.0",
     "solidity-docgen": "^0.6.0-beta.29",
     "solidity-rlp": "^2.0.5"
   }

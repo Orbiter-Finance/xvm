@@ -3,7 +3,6 @@ pragma solidity ^0.8.17;
 import "./Multicall.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
 interface IERC20 {
     function transfer(
         address recipient,
@@ -24,7 +23,7 @@ interface IERC20 {
     ) external returns (bool);
 }
 
-contract OrbiterBridge is Ownable, ReentrancyGuard, Multicall {
+contract OrbiterBridgeRouter is Ownable, ReentrancyGuard, Multicall {
     mapping(address => bool) public getMaker;
     event Swap(address indexed maker, address indexed token);
     event SwapAnswer(
@@ -64,7 +63,6 @@ contract OrbiterBridge is Ownable, ReentrancyGuard, Multicall {
         address payable recipient,
         uint256 value
     ) private {
-        // require(value > 0, "Value Wrong");
         if (token == address(0)) {
             require(address(this).balance >= value, "Insufficient Balance");
             recipient.transfer(value);

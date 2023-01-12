@@ -1,13 +1,14 @@
 import { TestToken } from '../typechain-types/contracts/TestToken';
-import { deploy, loadOrDeployContract } from "../scripts/utils";
+import { loadOrDeployContract, printSuccess } from "../scripts/utils";
 import { expect } from 'chai';
-import { OrbiterBridge } from "../typechain-types";
+import { OrbiterBridgeRouter } from "../typechain-types";
 import { ethers } from "hardhat";
 import { getTokenContract } from "./TestToken";
 import { SwapOrder, SwapOrderType } from "./types";
+import RLP from 'rlp'
 export async function getOrbiterBridge() {
   const [owner, maker] = await ethers.getSigners();
-  const bridge = await loadOrDeployContract<OrbiterBridge>('OrbiterBridge', false, maker.address);
+  const bridge = await loadOrDeployContract<OrbiterBridgeRouter>('OrbiterBridgeRouter', false, maker.address);
   bridge.on("Swap", (...data) => {
     console.log('Swap event:', data);
   });
@@ -91,12 +92,43 @@ describe("OrbiterBridge", function () {
       const sendValue = ethers.BigNumber.from(swapOrder.calldata.value);
 
       const [_, maker, user] = await ethers.getSigners();
-      const calldata = ethers.utils.hexConcat([ethers.utils.hexZeroPad(swapOrder.chainId,2), swapOrder.token, swapOrder.to]);
+      const hexZeroPad = ethers.utils.hexZeroPad
+
+      const calldata = ethers.utils.hexConcat([hexZeroPad(swapOrder.chainId, 2), hexZeroPad(swapOrder.token, 32)]);
       const swapTx = await contract.connect(user).swap(maker.address, swapOrder.calldata.token, sendValue, calldata, {
         value: sendValue
       })
-      await swapTx.wait();
+      const tx = await swapTx.wait();
+      const decodeSwap = contract.interface.decodeFunctionData('swap', swapTx.data);
+      const fee = tx.cumulativeGasUsed.mul(tx.effectiveGasPrice);
+      printSuccess('decodeSwap Data1:', decodeSwap.data);
+      printSuccess('hex fee:', ethers.utils.formatEther(fee).toString());
       swapOrder.calldata.hash = swapTx.hash;
+    });
+    it("Swap RLP (MainToken)", async function () {
+      const contract = await getOrbiterBridge();
+      const sendValue = ethers.BigNumber.from(swapOrder.calldata.value);
+      const [_, maker, user] = await ethers.getSigners();
+      const bufferList = [swapOrder.chainId, swapOrder.token] // 
+      const encoded = RLP.encode(bufferList) // 
+      const swapTx = await contract.connect(user).swap(maker.address, swapOrder.calldata.token, sendValue, encoded, {
+        value: sendValue
+      })
+      const tx = await swapTx.wait();
+      const fee = tx.cumulativeGasUsed.mul(tx.effectiveGasPrice);
+      const decodeSwap = contract.interface.decodeFunctionData('swap', swapTx.data);
+      printSuccess('decodeSwap Data1:', decodeSwap.data);
+      printSuccess('hex fee:', ethers.utils.formatEther(fee).toString());
+      swapOrder.calldata.hash = swapTx.hash;
+      const decoded = RLP.decode(decodeSwap.data) // 
+      decoded.forEach((item, index) => {
+        if (index === 0) {
+          console.log('chainId:', Number(item.toString()))
+        } else if (index === 1) {
+          const returnHexString = ethers.utils.hexlify(item); 
+          console.log(returnHexString, '==token');
+        }
+      })
     });
 
     it("Swap Ok (MainToken)", async function () {
